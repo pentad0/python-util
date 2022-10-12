@@ -1,19 +1,24 @@
 import argparse
 import pathlib
 
+LF = "\n"
 FILE_ENCODING = "utf-8"
 GIT_IGNORE = ".gitignore"
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("target_dir_path_str", help="target_dir_path", type=str)
 arg_parser.add_argument("export_file_path_str", help="export_file_path", type=str)
+arg_parser.add_argument('--sep_lf', action='store_true')
 args = arg_parser.parse_args()
 
-def get_all_char_list(target_dir_path_str):
+def get_all_char_list(target_dir_path_str, sep_lf):
     target_dir_path = pathlib.Path(target_dir_path_str)
     temp_list = make_all_char_list(target_dir_path)
     temp_list = list(set(temp_list))
     temp_list.sort()
+    if sep_lf:
+        for i, c in enumerate(temp_list):
+            temp_list[i] = c + LF
     return temp_list
 
 def make_all_char_list(target_path):
@@ -38,5 +43,5 @@ def write_file(export_file_path_str, char_list):
     with export_file_path.open(mode='w', encoding=FILE_ENCODING) as export_file:
         export_file.write("".join(char_list))
 
-char_list = get_all_char_list(args.target_dir_path_str)
+char_list = get_all_char_list(args.target_dir_path_str, args.sep_lf)
 write_file(args.export_file_path_str, char_list);
