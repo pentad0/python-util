@@ -18,4 +18,7 @@ for /f "usebackq" %%i in (`dir /b /on %conversionTableDir%*.tsv`) do (
 		set skipFlag=0
 	)
 )
+
+endlocal
+
 rem pause
