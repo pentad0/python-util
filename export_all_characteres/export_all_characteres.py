@@ -1,6 +1,9 @@
 import argparse
 import pathlib
 
+REMOVE_CHAR_LIST = [
+    "\t",
+]
 LF = "\n"
 FILE_ENCODING = "utf-8"
 GIT_IGNORE = ".gitignore"
@@ -16,6 +19,9 @@ def get_all_char_list(target_dir_path_str, sep_lf):
     temp_list = make_all_char_list(target_dir_path)
     temp_list = list(set(temp_list))
     temp_list.sort()
+    for c in REMOVE_CHAR_LIST:
+        if (c in temp_list):
+            temp_list.remove(c)
     if sep_lf:
         for i, c in enumerate(temp_list):
             temp_list[i] = c + LF

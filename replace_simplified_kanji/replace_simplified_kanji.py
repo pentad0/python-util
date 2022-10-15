@@ -33,13 +33,18 @@ def get_replacer_list(target_path_str):
             replacer_list.append(replacer_tuple)
     return replacer_list
 
-def search_dir(replacer_list, target_path, output_dir_path):
+def search_dir(replacer_list, target_path, output_dir_path, is_root_dir):
     if target_path.is_file():
         if target_path.name != GIT_IGNORE:
             replace_text(replacer_list, target_path, output_dir_path)
     elif target_path.is_dir():
+        if is_root_dir or output_dir_path is None:
+            temp_output_dir_path = output_dir_path
+        else:
+            temp_output_dir_path = output_dir_path / target_path.name
+            temp_output_dir_path.mkdir(exist_ok=True)
         for temp_path in target_path.iterdir():
-            search_dir(replacer_list, temp_path, output_dir_path)
+            search_dir(replacer_list, temp_path, temp_output_dir_path, False)
 
 def replace_text(replacer_list, target_path, output_dir_path):
     file_text = target_path.read_text(FILE_ENCODING)
@@ -55,4 +60,4 @@ def replace_text(replacer_list, target_path, output_dir_path):
 replacer_list = get_replacer_list(args.replacer_tsv_path_str)
 target_dir_path = pathlib.Path(args.target_dir_path_str)
 output_dir_path = pathlib.Path(args.output_dir) if args.output_dir is not None else None
-search_dir(replacer_list, target_dir_path, output_dir_path)
+search_dir(replacer_list, target_dir_path, output_dir_path, True)
