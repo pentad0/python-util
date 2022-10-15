@@ -2,6 +2,7 @@ import argparse
 import pathlib
 
 REMOVE_CHAR_LIST = [
+    "\t",
     u"\u200B",
     u"\uFEFF"
 ]
