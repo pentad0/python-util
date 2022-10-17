@@ -74,7 +74,6 @@ class UabeDumpedText:
     def __read_text_file(file_path):
         root_line = None
         with file_path.open(mode='r', encoding=UabeDumpedText.TEXT_FILE_ENCODING) as temp_file:
-
             prev_top_space_count = 0
             temp_parent = None
             index_pattern = re.compile(r"\[(\d+)\]")
