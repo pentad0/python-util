@@ -61,67 +61,86 @@ class UabeDumpedText:
             self.parent = None
             self.children = []
 
+            self.setAttributes()
+
         def __str__(self):
-            tempName = self.line_str
-            return tempName
+            return self.line_strmpName
+        
+        def setAttributes(self):
+            word_list = self.line_str.strip().split(UabeDumpedText.LINE_STR_SEP)
+            temp_match = re.search(r"\[(\d+)\]", self.line_str) 
+            if (temp_match is not None):
+                self.line_type = UabeDumpedText.LINE_TYPE.INDEX
+                self.name = temp_match.group(1)
+            elif ("=" in word_list):
+                self.line_type = UabeDumpedText.LINE_TYPE.PRIMITIVE
+                temp_index = word_list.index("=")
+                self.type = word_list[temp_index - 2]
+                self.name = word_list[temp_index - 1]
+                if (self.type == "string"):
+                    temp_value = UabeDumpedText.LINE_STR_SEP.join(word_list[temp_index + 1:])
+                    self.value = temp_value[1:len(temp_value) - 1]
+                else:
+                    self.value = word_list[temp_index + 1]
+            elif ("Array" in word_list):
+                self.line_type = UabeDumpedText.LINE_TYPE.ARRAY
+                temp_index = word_list.index("Array")
+                self.type = word_list[temp_index]
+                self.name = word_list[temp_index + 1]
+            elif ("pair" == word_list[1] and "data" == word_list[2]):
+                self.line_type = UabeDumpedText.LINE_TYPE.PAIR
+                self.type = word_list[1]
+                self.name = word_list[2]
+            else:
+                self.line_type = UabeDumpedText.LINE_TYPE.CLASS
+                temp_index = len(word_list) - 1
+                self.type = word_list[temp_index - 1]
+                self.name = word_list[temp_index]
+        
+        def setValue(self, value):
+            if (self.value is None):
+                raise Exception("No value line type.")
+            else:
+                self.value = value
+
+                temp_line_str = self.line_str.rstrip()
+                last_spaces = self.line_str[len(temp_line_str):]
+                temp_line_str = temp_line_str[0:temp_line_str.index(" = ") + 3]
+                if (self.type == "string"):
+                    temp_line_str += '"' + value + '"'
+                else:
+                    temp_line_str += value
+
+                self.line_str = temp_line_str + last_spaces
     
     def __init__(self, text_file_path_str):
         temp_file_path = pathlib.Path(text_file_path_str)
         self.root_line = UabeDumpedText.__read_text_file(temp_file_path)
         self.name = temp_file_path.name
-    
+
     @staticmethod
     def __read_text_file(file_path):
         root_line = None
         with file_path.open(mode='r', encoding=UabeDumpedText.TEXT_FILE_ENCODING) as temp_file:
             prev_top_space_count = 0
             temp_parent = None
-            index_pattern = re.compile(r"\[(\d+)\]")
             for line_str in temp_file.readlines():
                 this_line = UabeDumpedText.Line(line_str)
-
-                top_space_count = len(line_str) - len(line_str.lstrip())
-                for i in list(range(prev_top_space_count - top_space_count)):
-                    temp_parent = temp_parent.parent
                 
-                word_list = line_str.strip().split(UabeDumpedText.LINE_STR_SEP)
-                temp_match = index_pattern.search(line_str) 
-                if (temp_match is not None):
-                    this_line.line_type = UabeDumpedText.LINE_TYPE.INDEX
-                    this_line.name = temp_match.group(1)
-                elif ("=" in word_list):
-                    this_line.line_type = UabeDumpedText.LINE_TYPE.PRIMITIVE
-                    temp_index = word_list.index("=")
-                    this_line.type = word_list[temp_index - 2]
-                    this_line.name = word_list[temp_index - 1]
-                    if (this_line.type == "string"):
-                        temp_value = UabeDumpedText.LINE_STR_SEP.join(word_list[temp_index + 1:])
-                        this_line.value = temp_value[1:len(temp_value) - 1]
-                    else:
-                        this_line.value = word_list[temp_index + 1]
-                elif ("Array" in word_list):
-                    this_line.line_type = UabeDumpedText.LINE_TYPE.ARRAY
-                    temp_index = word_list.index("Array")
-                    this_line.type = word_list[temp_index]
-                    this_line.name = word_list[temp_index + 1]
-                elif ("pair" == word_list[1] and "data" == word_list[2]):
-                    this_line.line_type = UabeDumpedText.LINE_TYPE.PAIR
-                    this_line.type = word_list[1]
-                    this_line.name = word_list[2]
-                else:
-                    this_line.line_type = UabeDumpedText.LINE_TYPE.CLASS
-                    temp_index = len(word_list) - 1
-                    this_line.type = word_list[temp_index - 1]
-                    this_line.name = word_list[temp_index]
-                    
+                top_space_count = len(line_str) - len(line_str.lstrip())
+
                 if (root_line is None):
                     root_line = this_line
                 else:
+                    for i in list(range(prev_top_space_count - top_space_count)):
+                        temp_parent = temp_parent.parent
+                    
                     this_line.parent = temp_parent
                     temp_parent.children.append(this_line)
                 
                 if (this_line.line_type != UabeDumpedText.LINE_TYPE.PRIMITIVE):
                     temp_parent = this_line
+                
                 prev_top_space_count = top_space_count
         return root_line
 
