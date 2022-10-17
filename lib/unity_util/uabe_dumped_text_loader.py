@@ -19,6 +19,10 @@ class UabeDumpedText:
     """Encoding of dumped text.
     """
 
+    LINE_STR_SEP = " "
+    """Separator of line string.
+    """
+
     FIELD_HIERARCHY_STR_SEP = "->"
     """Separator of object field hierarchy string.
 
@@ -32,7 +36,7 @@ class UabeDumpedText:
         CLASS = enum.auto()
         ARRAY = enum.auto()
         INDEX = enum.auto()
-        PAIR_DATA = enum.auto()
+        PAIR = enum.auto()
         PRIMITIVE = enum.auto()
 
     class Line:    
@@ -40,20 +44,22 @@ class UabeDumpedText:
     
         Attributes:
             line_str (string): string of whole line
-            name (string): name of field
+            line_type (:obj:`UabeDumpedText.LINE_TYPE`): type of line
             type (string): type of field
+            name (string): name of field
             value (string): value of field
-            parent_line (string): parent of line
-            child_field_list (list): child field list
+            parent (string): parent of line
+            children (list): child line list
         """
 
         def __init__(self, line_str):
             self.line_str = line_str
-            self.name = None
+            self.line_type = None
             self.type = None
+            self.name = None
             self.value = None
-            self.parent_line = None
-            self.child_field_list = []
+            self.parent = None
+            self.children = []
 
         def __str__(self):
             tempName = self.line_str
@@ -70,43 +76,53 @@ class UabeDumpedText:
         with file_path.open(mode='r', encoding=UabeDumpedText.TEXT_FILE_ENCODING) as temp_file:
 
             prev_top_space_count = 0
-            temp_parent_line = None
+            temp_parent = None
             index_pattern = re.compile(r"\[(\d+)\]")
             for line_str in temp_file.readlines():
                 this_line = UabeDumpedText.Line(line_str)
 
                 top_space_count = len(line_str) - len(line_str.lstrip())
                 for i in list(range(prev_top_space_count - top_space_count)):
-                    temp_parent_line = temp_parent_line.parent_line
+                    temp_parent = temp_parent.parent
                 
-                word_list = line_str.rstrip().split()
+                word_list = line_str.strip().split(UabeDumpedText.LINE_STR_SEP)
                 temp_match = index_pattern.search(line_str) 
                 if (temp_match is not None):
-                    this_line.type = UabeDumpedText.LINE_TYPE.INDEX
+                    this_line.line_type = UabeDumpedText.LINE_TYPE.INDEX
                     this_line.name = temp_match.group(1)
                 elif ("=" in word_list):
-                    this_line.type = UabeDumpedText.LINE_TYPE.PRIMITIVE
-                    equal_index = word_list.index("=")
-                    this_line.name = word_list[equal_index - 1]
-                    this_line.value = word_list[equal_index + 1]
+                    this_line.line_type = UabeDumpedText.LINE_TYPE.PRIMITIVE
+                    temp_index = word_list.index("=")
+                    this_line.type = word_list[temp_index - 2]
+                    this_line.name = word_list[temp_index - 1]
+                    if (this_line.type == "string"):
+                        temp_value = UabeDumpedText.LINE_STR_SEP.join(word_list[temp_index + 1:])
+                        this_line.value = temp_value[1:len(temp_value) - 1]
+                    else:
+                        this_line.value = word_list[temp_index + 1]
                 elif ("Array" in word_list):
-                    this_line.type = UabeDumpedText.LINE_TYPE.ARRAY
-                    this_line.name = word_list[word_list.index("Array") + 1]
+                    this_line.line_type = UabeDumpedText.LINE_TYPE.ARRAY
+                    temp_index = word_list.index("Array")
+                    this_line.type = word_list[temp_index]
+                    this_line.name = word_list[temp_index + 1]
                 elif ("pair" == word_list[1] and "data" == word_list[2]):
-                    this_line.type = UabeDumpedText.LINE_TYPE.PAIR_DATA
-                    this_line.name = "pair data"
+                    this_line.line_type = UabeDumpedText.LINE_TYPE.PAIR
+                    this_line.type = word_list[1]
+                    this_line.name = word_list[2]
                 else:
-                    this_line.type = UabeDumpedText.LINE_TYPE.CLASS
-                    this_line.name = word_list[len(word_list) - 1]
+                    this_line.line_type = UabeDumpedText.LINE_TYPE.CLASS
+                    temp_index = len(word_list) - 1
+                    this_line.type = word_list[temp_index - 1]
+                    this_line.name = word_list[temp_index]
                     
                 if (root_line is None):
                     root_line = this_line
                 else:
-                    this_line.parent_line = temp_parent_line
-                    temp_parent_line.child_field_list.append(this_line)
+                    this_line.parent = temp_parent
+                    temp_parent.children.append(this_line)
                 
-                if (this_line.type != UabeDumpedText.LINE_TYPE.PRIMITIVE):
-                    temp_parent_line = this_line
+                if (this_line.line_type != UabeDumpedText.LINE_TYPE.PRIMITIVE):
+                    temp_parent = this_line
                 prev_top_space_count = top_space_count
         return root_line
 
@@ -116,7 +132,7 @@ class UabeDumpedText:
                 return target_line
             else:
                 new_needle_list = needle_list[1:]
-                for temp_line in target_line.child_field_list:
+                for temp_line in target_line.children:
                     result_line = self.__search_line(temp_line, new_needle_list)
                     if (result_line is not None):
                         return result_line
@@ -132,11 +148,11 @@ class UabeDumpedText:
 
     @staticmethod
     def overwrite_line(target_line, new_line):
-        parent_line = target_line.parent_line
-        parent_child_field_list = parent_line.child_field_list
-        temp_index = parent_child_field_list.index(target_line)
-        parent_child_field_list[temp_index] = new_line
-        new_line.parent_line = parent_line
+        parent = target_line.parent
+        parent_children = parent.children
+        temp_index = parent_children.index(target_line)
+        parent_children[temp_index] = new_line
+        new_line.parent = parent
 
     def search_and_overwrite_line(self, new_dumped_text, needle_str):
         temp_base_line = self.search_line(needle_str)
@@ -144,17 +160,17 @@ class UabeDumpedText:
         UabeDumpedText.overwrite_line(temp_base_line, temp_new_line)
 
     def __search_pair_second_line(self, target_line, first_value):
-        if (target_line.type == UabeDumpedText.LINE_TYPE.PAIR_DATA):
-            child_field_list = target_line.child_field_list
-            if (child_field_list[0].value == '"' + first_value + '"'):
-                return child_field_list[1]
+        if (target_line.line_type == UabeDumpedText.LINE_TYPE.PAIR):
+            children = target_line.children
+            if (children[0].value == first_value):
+                return children[1]
             else:
-                for temp_line in child_field_list[1].child_field_list:
+                for temp_line in children[1].children:
                     result_line = self.__search_pair_second_line(temp_line, first_value)
                     if (result_line is not None):
                         return result_line
         else:
-            for temp_line in target_line.child_field_list:
+            for temp_line in target_line.children:
                 result_line = self.__search_pair_second_line(temp_line, first_value)
                 if (result_line is not None):
                     return result_line
@@ -171,7 +187,7 @@ class UabeDumpedText:
     @staticmethod
     def __write_line(target_file, target_line):
         target_file.write(target_line.line_str)
-        for temp_line in target_line.child_field_list:
+        for temp_line in target_line.children:
             UabeDumpedText.__write_line(target_file, temp_line)
 
     def write_file(self, file_path_str):
