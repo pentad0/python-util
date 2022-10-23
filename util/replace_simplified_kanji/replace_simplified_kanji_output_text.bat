@@ -2,6 +2,7 @@ setlocal enabledelayedexpansion
 
 set conversionTableDir=.\conversion_table\
 set targetDir="./target_text"
+rem set targetDir="../../../taiwu-language-files-zh-hans-jp/zh-hans"
 set outputDir="./output_text"
 
 for /f "usebackq" %%i in (`dir /b /on %conversionTableDir%*.tsv`) do (
