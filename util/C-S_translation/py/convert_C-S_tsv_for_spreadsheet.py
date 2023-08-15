@@ -30,6 +30,36 @@ class TEXT_TYPE(Enum):
     def _missing_(cls, value):
         return TEXT_TYPE.TSCN_NON_STRING_VALUE
 
+NON_TARGET_TEXT_TYPES = [
+    TEXT_TYPE.DURATION,
+    TEXT_TYPE.TSCN_NON_STRING_VALUE,
+]
+
+class SpreadsheetCol():
+    def __init__(self, index, default_value):
+        self.index = index
+        self.default_value = default_value
+
+SPREADSHEET_COL_DICT = {}
+i = 0
+for temp_key, temp_value in {
+    "ファイル名" : "",
+    "種別" : "",
+    "発言者" : "",
+    "原文" : "",
+    "直訳" : "",
+    "ドラフト" : "",
+    "備考1" : "",
+    "最終稿" : "",
+    "備考2" : "",
+    "Status" : "",
+    "TEXT_TYPE" : "",
+    "Key1" : "",
+    "Key2" : "",
+}.items():
+    SPREADSHEET_COL_DICT[temp_key] = SpreadsheetCol(i, temp_value)
+    i += 1
+
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("input_file_path_japanese_str", help="input_file_path_japanese", type=str)
 arg_parser.add_argument("input_file_path_english_str", help="input_file_path_english", type=str)
@@ -48,7 +78,7 @@ def convert_tsv(input_file_path_japanese_str, input_file_path_english_str, outpu
             if len(tsv_col_list) >= MIN_COL_NUM:
                 tsv_col_list.pop()
                 temp_text_type = TEXT_TYPE(tsv_col_list[1])
-                if temp_text_type != TEXT_TYPE.GD:
+                if temp_text_type not in (NON_TARGET_TEXT_TYPES + [TEXT_TYPE.GD]):
                     temp_key = get_original_text_key(tsv_col_list)
                     original_text_cols_dict[temp_key] = tsv_col_list
 
@@ -59,7 +89,7 @@ def convert_tsv(input_file_path_japanese_str, input_file_path_english_str, outpu
             if len(tsv_col_list) >= MIN_COL_NUM:
                 tsv_col_list.pop()
                 temp_text_type = TEXT_TYPE(tsv_col_list[1])
-                if temp_text_type not in [TEXT_TYPE.DURATION, TEXT_TYPE.TSCN_NON_STRING_VALUE,]:
+                if temp_text_type not in NON_TARGET_TEXT_TYPES:
                     if temp_text_type != TEXT_TYPE.GD:
                         temp_key = get_original_text_key(tsv_col_list)
                         original_text_cols = original_text_cols_dict[temp_key]
@@ -73,8 +103,8 @@ def convert_tsv(input_file_path_japanese_str, input_file_path_english_str, outpu
                         case _:
                             append_output_cols_tscn_tagged_str(output_tsv_line_cols_list, tsv_col_list, original_text_cols)
 
-    temp_col_names = [""] * len(OUTPUT_COL_DICT)
-    for temp_key, temp_col in OUTPUT_COL_DICT.items():
+    temp_col_names = [""] * len(SPREADSHEET_COL_DICT)
+    for temp_key, temp_col in SPREADSHEET_COL_DICT.items():
         temp_col_names[temp_col.index] = temp_key
     output_tsv_line_cols_list.insert(0, temp_col_names)
 
@@ -85,36 +115,10 @@ def convert_tsv(input_file_path_japanese_str, input_file_path_english_str, outpu
     with output_file_path.open(mode='w', encoding=FILE_ENCODING) as export_file:
         export_file.write(LF.join(output_tsv_line_list) + LF)
 
-
-class OutputCol():
-    def __init__(self, index, default_value):
-        self.index = index
-        self.default_value = default_value
-
-OUTPUT_COL_DICT = {}
-i = 0
-for temp_key, temp_value in {
-    "ファイル名" : "",
-    "種別" : "",
-    "発言者" : "",
-    "原文" : "",
-    "直訳" : "",
-    "ドラフト" : "",
-    "備考1" : "",
-    "最終稿" : "",
-    "備考2" : "",
-    "Status" : "",
-    "TEXT_TYPE" : "",
-    "Key1" : "",
-    "Key2" : "",
-}.items():
-    OUTPUT_COL_DICT[temp_key] = OutputCol(i, temp_value)
-    i += 1
-
 def append_output_cols_gd(line_cols_list, tsv_col_list):
     temp_cols = init_output_cols(tsv_col_list)
-    temp_cols[OUTPUT_COL_DICT["原文"].index] = tsv_col_list[4]
-    temp_cols[OUTPUT_COL_DICT["ドラフト"].index] = tsv_col_list[5]
+    temp_cols[SPREADSHEET_COL_DICT["原文"].index] = tsv_col_list[4]
+    temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[5]
     line_cols_list.append(temp_cols)
 
 def append_output_cols_json(line_cols_list, tsv_col_list, original_text_cols):
@@ -125,10 +129,10 @@ def append_output_cols_json(line_cols_list, tsv_col_list, original_text_cols):
         "description",
     ]:
         temp_cols = init_output_cols(tsv_col_list)
-        temp_cols[OUTPUT_COL_DICT["種別"].index] = temp_kind
-        temp_cols[OUTPUT_COL_DICT["原文"].index] = original_text_cols[i]
-        temp_cols[OUTPUT_COL_DICT["ドラフト"].index] = tsv_col_list[i]
-        temp_cols[OUTPUT_COL_DICT["Key1"].index] = temp_kind
+        temp_cols[SPREADSHEET_COL_DICT["種別"].index] = temp_kind
+        temp_cols[SPREADSHEET_COL_DICT["原文"].index] = original_text_cols[i]
+        temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[i]
+        temp_cols[SPREADSHEET_COL_DICT["Key1"].index] = temp_kind
         line_cols_list.append(temp_cols)
         i += 1
 
@@ -138,17 +142,17 @@ def append_output_cols_lines(line_cols_list, tsv_col_list, original_text_cols):
         temp_original_text = ""
         if i < len(original_text_cols):
             temp_original_text = original_text_cols[i]
-        temp_cols[OUTPUT_COL_DICT["原文"].index] = temp_original_text
-        temp_cols[OUTPUT_COL_DICT["ドラフト"].index] = tsv_col_list[i]
-        temp_cols[OUTPUT_COL_DICT["Key1"].index] = tsv_col_list[4]
-        temp_cols[OUTPUT_COL_DICT["Key2"].index] = str(i - LINE_TEXT_START_COL_NUM)
+        temp_cols[SPREADSHEET_COL_DICT["原文"].index] = temp_original_text
+        temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[i]
+        temp_cols[SPREADSHEET_COL_DICT["Key1"].index] = tsv_col_list[4]
+        temp_cols[SPREADSHEET_COL_DICT["Key2"].index] = str(i - LINE_TEXT_START_COL_NUM)
         line_cols_list.append(temp_cols)
 
 def append_output_cols_tscn_tagged_str(line_cols_list, tsv_col_list, original_text_cols):
     temp_cols = init_output_cols(tsv_col_list)
-    temp_cols[OUTPUT_COL_DICT["原文"].index] = original_text_cols[5]
-    temp_cols[OUTPUT_COL_DICT["ドラフト"].index] = tsv_col_list[5]
-    temp_cols[OUTPUT_COL_DICT["Key1"].index] = tsv_col_list[4]
+    temp_cols[SPREADSHEET_COL_DICT["原文"].index] = original_text_cols[5]
+    temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[5]
+    temp_cols[SPREADSHEET_COL_DICT["Key1"].index] = tsv_col_list[4]
     line_cols_list.append(temp_cols)
 
 def get_original_text_key(tsv_col_list):
@@ -160,11 +164,11 @@ def get_original_text_key(tsv_col_list):
         return tsv_col_list[0], tsv_col_list[1], temp_key2
 
 def init_output_cols(tsv_col_list):
-    temp_cols = [""] * len(OUTPUT_COL_DICT)
-    for temp_col in OUTPUT_COL_DICT.values():
+    temp_cols = [""] * len(SPREADSHEET_COL_DICT)
+    for temp_col in SPREADSHEET_COL_DICT.values():
         temp_cols[temp_col.index] = temp_col.default_value
-    temp_cols[OUTPUT_COL_DICT["ファイル名"].index] = tsv_col_list[0]
-    temp_cols[OUTPUT_COL_DICT["TEXT_TYPE"].index] = tsv_col_list[1]
+    temp_cols[SPREADSHEET_COL_DICT["ファイル名"].index] = tsv_col_list[0]
+    temp_cols[SPREADSHEET_COL_DICT["TEXT_TYPE"].index] = tsv_col_list[1]
     return temp_cols
 
 convert_tsv(args.input_file_path_japanese_str, args.input_file_path_english_str, args.output_file_path_str)
