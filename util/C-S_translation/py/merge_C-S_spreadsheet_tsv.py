@@ -6,6 +6,7 @@ import pathlib
 FILE_ENCODING = "utf-8"
 TSV_SEP = "\t"
 LF = "\n"
+LF_STR = "\\n"
 MIN_COL_NUM = 4
 LINE_TEXT_START_COL_NUM = 5
 
@@ -48,7 +49,9 @@ for temp_key, temp_value in {
     "発言者" : "",
     "原文" : "",
     "直訳" : "",
-    "ドラフト" : "",
+    "ドラフト1" : "",
+    "ドラフト2" : "",
+    "ドラフト3" : "",
     "備考1" : "",
     "最終稿" : "",
     "備考2" : "",
@@ -56,6 +59,7 @@ for temp_key, temp_value in {
     "TEXT_TYPE" : "",
     "Key1" : "",
     "Key2" : "",
+    "is_text" : "",
 }.items():
     SPREADSHEET_COL_DICT[temp_key] = SpreadsheetCol(i, temp_value)
     i += 1
@@ -71,39 +75,54 @@ def reconvert_tsv(spreadsheet_tsv_file_path_str, input_file_path_str, output_fil
     input_file_path = pathlib.Path(input_file_path_str)
     output_file_path = pathlib.Path(output_file_path_str)
 
-    spreadsheet_tsv_cols_dict = {}
+    spreadsheet_cols_len = len(SPREADSHEET_COL_DICT)
+    line_cols_list = []
+    temp_tsv_col_list = []
     is_header_row = True
     with spreadsheet_tsv_file_path.open(mode='r', encoding=FILE_ENCODING) as temp_file:
         for line_str in temp_file:
             if is_header_row:
                 is_header_row = False
             else:
-                tsv_col_list = line_str.rstrip(LF).split(TSV_SEP)
+                temp_line_cols = line_str.rstrip(LF).split(TSV_SEP)
+                
+                temp_len = len(temp_tsv_col_list)
+                if temp_len > 0:
+                    temp_index = temp_len - 1
+                    temp_tsv_col_list[temp_index] = temp_tsv_col_list[temp_index] + LF_STR + temp_line_cols.pop(0)
+                
+                temp_tsv_col_list.extend(temp_line_cols)
+                
+                if len(temp_tsv_col_list) >= spreadsheet_cols_len:
+                    line_cols_list.append(temp_tsv_col_list)
+                    temp_tsv_col_list = []
 
-                temp_file_name = tsv_col_list[SPREADSHEET_COL_DICT["ファイル名"].index]
-                if temp_file_name not in spreadsheet_tsv_cols_dict:
-                    spreadsheet_tsv_cols_dict[temp_file_name] = {}
-                temp_dict = spreadsheet_tsv_cols_dict[temp_file_name]
-                
-                temp_text_type = TEXT_TYPE(tsv_col_list[SPREADSHEET_COL_DICT["TEXT_TYPE"].index])
-                if temp_text_type not in temp_dict:
-                    temp_dict[temp_text_type] = {}
-                temp_dict = temp_dict[temp_text_type]
-                
-                temp_original_text = tsv_col_list[SPREADSHEET_COL_DICT["原文"].index]
-                temp_final_draft = tsv_col_list[SPREADSHEET_COL_DICT["最終稿"].index]
-                temp_key1 = tsv_col_list[SPREADSHEET_COL_DICT["Key1"].index]
-                temp_key2 = tsv_col_list[SPREADSHEET_COL_DICT["Key2"].index]
-                if temp_text_type not in NON_TARGET_TEXT_TYPES:
-                    match temp_text_type:
-                        case TEXT_TYPE.GD:
-                            temp_dict[temp_original_text] = temp_final_draft
-                        case TEXT_TYPE.DYN_LINES | TEXT_TYPE.LINES:
-                            if temp_key1 not in temp_dict:
-                                temp_dict[temp_key1] = {}
-                            temp_dict[temp_key1][temp_key2] = temp_final_draft
-                        case _:
-                            temp_dict[temp_key1] = temp_final_draft
+    spreadsheet_tsv_cols_dict = {}
+    for tsv_col_list in line_cols_list:
+        temp_file_name = tsv_col_list[SPREADSHEET_COL_DICT["ファイル名"].index]
+        if temp_file_name not in spreadsheet_tsv_cols_dict:
+            spreadsheet_tsv_cols_dict[temp_file_name] = {}
+        temp_dict = spreadsheet_tsv_cols_dict[temp_file_name]
+        
+        temp_text_type = TEXT_TYPE(tsv_col_list[SPREADSHEET_COL_DICT["TEXT_TYPE"].index])
+        if temp_text_type not in temp_dict:
+            temp_dict[temp_text_type] = {}
+        temp_dict = temp_dict[temp_text_type]
+        
+        temp_original_text = tsv_col_list[SPREADSHEET_COL_DICT["原文"].index]
+        temp_final_draft = tsv_col_list[SPREADSHEET_COL_DICT["最終稿"].index]
+        temp_key1 = tsv_col_list[SPREADSHEET_COL_DICT["Key1"].index]
+        temp_key2 = tsv_col_list[SPREADSHEET_COL_DICT["Key2"].index]
+        if temp_text_type not in NON_TARGET_TEXT_TYPES:
+            match temp_text_type:
+                case TEXT_TYPE.GD:
+                    temp_dict[temp_original_text] = temp_final_draft
+                case TEXT_TYPE.DYN_LINES | TEXT_TYPE.LINES:
+                    if temp_key1 not in temp_dict:
+                        temp_dict[temp_key1] = {}
+                    temp_dict[temp_key1][temp_key2] = temp_final_draft
+                case _:
+                    temp_dict[temp_key1] = temp_final_draft
 
     output_tsv_line_cols_list = []
     with input_file_path.open(mode='r', encoding=FILE_ENCODING) as temp_file:

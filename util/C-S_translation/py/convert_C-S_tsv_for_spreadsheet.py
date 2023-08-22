@@ -48,7 +48,9 @@ for temp_key, temp_value in {
     "発言者" : "",
     "原文" : "",
     "直訳" : "",
-    "ドラフト" : "",
+    "ドラフト1" : "",
+    "ドラフト2" : "",
+    "ドラフト3" : "",
     "備考1" : "",
     "最終稿" : "",
     "備考2" : "",
@@ -56,6 +58,7 @@ for temp_key, temp_value in {
     "TEXT_TYPE" : "",
     "Key1" : "",
     "Key2" : "",
+    "is_text" : "",
 }.items():
     SPREADSHEET_COL_DICT[temp_key] = SpreadsheetCol(i, temp_value)
     i += 1
@@ -118,7 +121,7 @@ def convert_tsv(input_file_path_japanese_str, input_file_path_english_str, outpu
 def append_output_cols_gd(line_cols_list, tsv_col_list):
     temp_cols = init_output_cols(tsv_col_list)
     temp_cols[SPREADSHEET_COL_DICT["原文"].index] = tsv_col_list[4]
-    temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[5]
+    temp_cols[SPREADSHEET_COL_DICT["ドラフト1"].index] = tsv_col_list[5]
     line_cols_list.append(temp_cols)
 
 def append_output_cols_json(line_cols_list, tsv_col_list, original_text_cols):
@@ -131,7 +134,7 @@ def append_output_cols_json(line_cols_list, tsv_col_list, original_text_cols):
         temp_cols = init_output_cols(tsv_col_list)
         temp_cols[SPREADSHEET_COL_DICT["種別"].index] = temp_kind
         temp_cols[SPREADSHEET_COL_DICT["原文"].index] = original_text_cols[i]
-        temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[i]
+        temp_cols[SPREADSHEET_COL_DICT["ドラフト1"].index] = tsv_col_list[i]
         temp_cols[SPREADSHEET_COL_DICT["Key1"].index] = temp_kind
         line_cols_list.append(temp_cols)
         i += 1
@@ -143,7 +146,7 @@ def append_output_cols_lines(line_cols_list, tsv_col_list, original_text_cols):
         if i < len(original_text_cols):
             temp_original_text = original_text_cols[i]
         temp_cols[SPREADSHEET_COL_DICT["原文"].index] = temp_original_text
-        temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[i]
+        temp_cols[SPREADSHEET_COL_DICT["ドラフト1"].index] = tsv_col_list[i]
         temp_cols[SPREADSHEET_COL_DICT["Key1"].index] = tsv_col_list[4]
         temp_cols[SPREADSHEET_COL_DICT["Key2"].index] = str(i - LINE_TEXT_START_COL_NUM)
         line_cols_list.append(temp_cols)
@@ -151,7 +154,7 @@ def append_output_cols_lines(line_cols_list, tsv_col_list, original_text_cols):
 def append_output_cols_tscn_tagged_str(line_cols_list, tsv_col_list, original_text_cols):
     temp_cols = init_output_cols(tsv_col_list)
     temp_cols[SPREADSHEET_COL_DICT["原文"].index] = original_text_cols[5]
-    temp_cols[SPREADSHEET_COL_DICT["ドラフト"].index] = tsv_col_list[5]
+    temp_cols[SPREADSHEET_COL_DICT["ドラフト1"].index] = tsv_col_list[5]
     temp_cols[SPREADSHEET_COL_DICT["Key1"].index] = tsv_col_list[4]
     line_cols_list.append(temp_cols)
 
