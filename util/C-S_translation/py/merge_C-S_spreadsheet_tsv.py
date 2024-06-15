@@ -55,6 +55,7 @@ for temp_key, temp_value in {
     "備考1" : "",
     "最終稿" : "",
     "備考2" : "",
+    "意見" : "",
     "Status" : "",
     "TEXT_TYPE" : "",
     "Key1" : "",
