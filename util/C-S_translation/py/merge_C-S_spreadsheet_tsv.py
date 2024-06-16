@@ -69,9 +69,10 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("spreadsheet_tsv_file_path_str", help="spreadsheet_tsv_file_path", type=str)
 arg_parser.add_argument("input_file_path_str", help="input_file_path", type=str)
 arg_parser.add_argument("output_file_path_str", help="output_file_path", type=str)
+arg_parser.add_argument("input_column", help="input_column", type=str)
 args = arg_parser.parse_args()
 
-def reconvert_tsv(spreadsheet_tsv_file_path_str, input_file_path_str, output_file_path_str):
+def reconvert_tsv(spreadsheet_tsv_file_path_str, input_file_path_str, output_file_path_str, input_column):
     spreadsheet_tsv_file_path = pathlib.Path(spreadsheet_tsv_file_path_str)
     input_file_path = pathlib.Path(input_file_path_str)
     output_file_path = pathlib.Path(output_file_path_str)
@@ -111,7 +112,7 @@ def reconvert_tsv(spreadsheet_tsv_file_path_str, input_file_path_str, output_fil
         temp_dict = temp_dict[temp_text_type]
         
         temp_original_text = tsv_col_list[SPREADSHEET_COL_DICT["原文"].index]
-        temp_final_draft = tsv_col_list[SPREADSHEET_COL_DICT["最終稿"].index]
+        temp_final_draft = tsv_col_list[SPREADSHEET_COL_DICT[input_column].index]
         temp_key1 = tsv_col_list[SPREADSHEET_COL_DICT["Key1"].index]
         temp_key2 = tsv_col_list[SPREADSHEET_COL_DICT["Key2"].index]
         if temp_text_type not in NON_TARGET_TEXT_TYPES:
@@ -161,4 +162,4 @@ def reconvert_tsv(spreadsheet_tsv_file_path_str, input_file_path_str, output_fil
     with output_file_path.open(mode='w', encoding=FILE_ENCODING) as export_file:
         export_file.write(LF.join(output_tsv_line_list) + LF)
 
-reconvert_tsv(args.spreadsheet_tsv_file_path_str, args.input_file_path_str, args.output_file_path_str)
+reconvert_tsv(args.spreadsheet_tsv_file_path_str, args.input_file_path_str, args.output_file_path_str, args.input_column)
